@@ -40,7 +40,9 @@
       "pages": [
         "introduction",
         "quickstart",
-        "development"
+        "development",
+        "Custom VectorDB",
+        "custom_models.mdx"
       ]
     },
     {
