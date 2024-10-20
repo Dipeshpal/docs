@@ -1,97 +1,282 @@
 ---
 title: 'Development'
-description: 'Learn how to preview changes locally'
+description: 'Learn how to use chatformers?'
 ---
 
 <Info>
-  **Prerequisite**: Please install Node.js (version 19 or higher) before proceeding.
+  **Prerequisite**: Please install python (version 3.10 or higher) before proceeding.
 </Info>
 
-Step 1. Install Mintlify on your OS:
+## Step 1. Install chatformers
 
 <CodeGroup>
 
-```bash npm
-npm i -g mintlify
+```bash python
+pip install chatformers
 ```
 
-```bash yarn
-yarn global add mintlify
-```
 
 </CodeGroup>
 
-Step 2. Go to the docs are located (where you can find `mint.json`) and run the following command:
+Step 2. Get API Keys first. Lets assume you are using model from GRQO (https://console.groq.com/docs/openai):
 
-```bash
-mintlify dev
+
+## Step 2. Imports
+
+```
+from chatformers.chatbot import Chatbot
+import os
+from openai import OpenAI
 ```
 
-The documentation website is now available at `http://localhost:3000`.
-
-### Custom Ports
-
-Mintlify uses port 3000 by default. You can use the `--port` flag to customize the port Mintlify runs on. For example, use this command to run in port 3333:
-
-```bash
-mintlify dev --port 3333
-```
-
-You will see an error like this if you try to run Mintlify in a port that's already taken:
-
-```md
-Error: listen EADDRINUSE: address already in use :::3000
-```
-
-## Mintlify Versions
-
-Each CLI is linked to a specific version of Mintlify. Please update the CLI if your local website looks different than production.
-
-<CodeGroup>
-
-```bash npm
-npm i -g mintlify@latest
-```
-
-```bash yarn
-yarn global upgrade mintlify
-```
-
-</CodeGroup>
-
-## Deployment
-
-<Tip>
-  Unlimited editors available under the [Pro
-  Plan](https://mintlify.com/pricing) and above.
-</Tip>
-
-You should see the following if the deploy successfully went through:
-
-<Frame>
-  <img src="/images/checks-passed.png" style={{ borderRadius: '0.5rem' }} />
-</Frame>
-
-## Troubleshooting
-
-Here's how to solve some common problems when working with the CLI.
+You can use other openai compaitable llm also if required.
 
 <AccordionGroup>
-  <Accordion title="Mintlify is not loading">
-    Update to Node v18. Run `mintlify install` and try again.
-  </Accordion>
-  <Accordion title="No such file or directory on Windows">
-Go to the `C:/Users/Username/.mintlify/` directory and remove the `mint`
-folder. Then Open the Git Bash in this location and run `git clone
-https://github.com/mintlify/mint.git`.
+  <Accordion icon="rectangle-terminal" title="Using GROQ">
+    ```bash python
+    from groq import Groq
 
-Repeat step 3.
-
+    client = Groq(api_key="")
+    ```
   </Accordion>
-  <Accordion title="Getting an unknown error">
-    Try navigating to the root of your device and delete the ~/.mintlify folder.
-    Then run `mintlify dev` again.
+    <Accordion icon="rectangle-terminal" title="Using OpenAI">
+    ```bash python
+    from openai import OpenAI
+
+    client = OpenAI(base_url="", api_key="",
+    )
+    ```
   </Accordion>
 </AccordionGroup>
 
-Curious about what changed in a CLI version? [Check out the CLI changelog.](/changelog/command-line)
+from groq import Groq
+
+client = Groq(
+    api_key=os.environ.get("GROQ_API_KEY"),
+)
+
+## Step 3. Setup Variables
+
+
+```bash python
+system_prompt = None  # use the default
+metadata = None  # use the default metadata
+user_id = "Sam-Julia"  # combination of user name and assistant name is recommended
+chat_model_name = "llama-3.1-70b-versatile"
+memory_model_name = "llama-3.1-70b-versatile"
+max_tokens = 150  # len of tokens to generate from LLM
+limit = 4  # maximum number of memory to added during LLM chat
+debug = True  # enable to print debug messages
+os.environ["GROQ_API_KEY"] = ""
+```
+
+
+## Step 4. Setup LLM Client
+
+```bash python
+llm_client = OpenAI(base_url="https://api.groq.com/openai/v1", api_key="")  # Any OpenAI Compatible LLM Client, using groq here
+```
+
+
+## Step 5. Set Config
+
+<Tip>
+  Check documentation for other supported vectorstore, embedding model and LLM model
+</Tip>
+
+This is the example of chromadb as vector store, ollama as embedding model and groq as LLM. You can use other supported vectorstore, embedding model and LLM model-
+
+```bash python
+config = {
+    "vector_store": {
+        "provider": "chroma",
+        "config": {
+            "collection_name": user_id,
+            "path": "db",
+        }
+    },
+    "embedder": {
+        "provider": "ollama",
+        "config": {
+            "model": "nomic-embed-text:latest"
+        }
+    },
+    "llm": {
+        "provider": "groq",
+        "config": {
+            "model": memory_model_name,
+            "temperature": 0.1,
+            "max_tokens": 1000,
+        }
+    },
+}
+```
+
+## Step 6. Initilize Chatbot-
+
+```bash python
+chatbot = Chatbot(config=config, llm_client=llm_client, metadata=None, system_prompt=system_prompt,
+                  chat_model_name=chat_model_name, memory_model_name=memory_model_name,
+                  max_tokens=max_tokens, limit=limit, debug=debug)
+```
+
+
+
+## Step 7. Add Memories-
+
+Here's how to solve some common problems when working with the CLI.
+
+
+```bash python
+# Example to add buffer memory
+memory_messages = [
+    {"role": "user", "content": "My name is Sam, what about you?"},
+    {"role": "assistant", "content": "Hello Sam! I'm Julia."},
+    {"role": "user", "content": "What do you like to eat?"},
+    {"role": "assistant", "content": "I like pizza"}
+]
+chatbot.add_memories(memory_messages, user_id=user_id)
+```
+
+
+## Step 8. Add Buffer window / Sliding Chat Memory-
+
+```bash python
+# Buffer window memory, this will be acts as sliding window memory for LLM
+message_history = [{"role": "user", "content": "where r u from?"},
+                    {"role": "assistant", "content": "I am from CA, USA"},
+                    {"role": "user", "content": "ok"},
+                    {"role": "assistant", "content": "hmm"},
+                    {"role": "user", "content": "What are u doing on next Sunday?"},
+                    {"role": "assistant", "content": "I am all available"}
+                    ]
+```
+
+## Step 9. Chat-
+
+```bash python
+# Example to chat with the bot, send latest / current query here
+query = "Do you remember my name?"
+response = chatbot.chat(query=query, message_history=message_history, user_id=user_id, print_stream=True)
+print("Assistant: ", response)
+
+```
+
+
+## Step 10. Optional-
+
+```bash python
+# Example to check memories in bot based on user_id
+memories = chatbot.get_memories(user_id=user_id)
+for m in memories:
+    print(m)
+print("================================================================")
+related_memories = chatbot.related_memory(user_id=user_id,
+                                          query="yes i am sam? what us your name")
+print(related_memories)
+```
+
+
+# Complete Code-
+
+```bash python
+from chatformers.chatbot import Chatbot
+import os
+from openai import OpenAI
+
+system_prompt = None  # use the default
+metadata = None  # use the default metadata
+user_id = "Sam-Julia"
+chat_model_name = "llama-3.1-70b-versatile"
+memory_model_name = "llama-3.1-70b-versatile"
+max_tokens = 150  # len of tokens to generate from LLM
+limit = 4  # maximum number of memory to added during LLM chat
+debug = True  # enable to print debug messages
+
+os.environ["GROQ_API_KEY"] = ""
+llm_client = OpenAI(base_url="https://api.groq.com/openai/v1",
+                    api_key="",
+                    )  # Any OpenAI Compatible LLM Client
+config = {
+    "vector_store": {
+        "provider": "chroma",
+        "config": {
+            "collection_name": "test",
+            "path": "db",
+        }
+    },
+    "embedder": {
+        "provider": "ollama",
+        "config": {
+            "model": "nomic-embed-text:latest"
+        }
+    },
+    "llm": {
+        "provider": "groq",
+        "config": {
+            "model": memory_model_name,
+            "temperature": 0.1,
+            "max_tokens": 1000,
+        }
+    },
+}
+
+chatbot = Chatbot(config=config, llm_client=llm_client, metadata=None, system_prompt=system_prompt,
+                  chat_model_name=chat_model_name, memory_model_name=memory_model_name,
+                  max_tokens=max_tokens, limit=limit, debug=debug)
+
+# Example to add buffer memory
+memory_messages = [
+    {"role": "user", "content": "My name is Sam, what about you?"},
+    {"role": "assistant", "content": "Hello Sam! I'm Julia."},
+    {"role": "user", "content": "What do you like to eat?"},
+    {"role": "assistant", "content": "I like pizza"}
+]
+chatbot.add_memories(memory_messages, user_id=user_id)
+
+# Buffer window memory, this will be acts as sliding window memory for LLM
+message_history = [{"role": "user", "content": "where r u from?"},
+                   {"role": "assistant", "content": "I am from CA, USA"},
+                   {"role": "user", "content": "ok"},
+                   {"role": "assistant", "content": "hmm"},
+                   {"role": "user", "content": "What are u doing on next Sunday?"},
+                   {"role": "assistant", "content": "I am all available"}
+                   ]
+# Example to chat with the bot, send latest / current query here
+query = "Could you remind me what do you like to eat?"
+response = chatbot.chat(query=query, message_history=message_history, user_id=user_id, print_stream=True)
+print("Assistant: ", response)
+
+# Example to check memories in bot based on user_id
+# memories = chatbot.get_memories(user_id=user_id)
+# for m in memories:
+#     print(m)
+# print("================================================================")
+# related_memories = chatbot.related_memory(user_id=user_id,
+#                                           query="yes i am sam? what us your name")
+# print(related_memories)
+```
+
+
+Output Looks like-
+
+```bash
+INFO: USING BELOW GIVEN CONFIGS-
+{'embedder': {'config': {'model': 'nomic-embed-text:latest'},
+              'provider': 'ollama'},
+ 'llm': {'config': {'max_tokens': 1000,
+                    'model': 'llama-3.1-70b-versatile',
+                    'temperature': 0.1},
+         'provider': 'groq'},
+ 'vector_store': {'config': {'collection_name': 'test', 'path': 'db'},
+                  'provider': 'chroma'}}
+INFO: END OF CONFIGS
+INFO: SYSTEM PROMPT-
+You are a helpful assistant.You have access of following memories from old conversation you had earlier. You can refer these if required-
+Likes pizza
+Name is Julia
+
+Assistant: I like to eat pizza.
+
+Process finished with exit code 0
+```
