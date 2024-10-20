@@ -2,8 +2,8 @@
   "$schema": "https://mintlify.com/schema.json",
   "name": "Chatformers",
   "logo": {
-    "dark": "/logo/darke.svg",
-    "light": "/logo/lighte.svg"
+    "dark": "https://i.ibb.co/BzqYns5/Chatformers.png",
+    "light": "https://i.ibb.co/BzqYns5/Chatformers.png"
   },
   "favicon": "/favicon.svg",
   "colors": {
